@@ -1,0 +1,228 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
+
+#define MAX 10 // Tamaño máximo de la matriz
+#define EPSILON 1e-6 // Tolerancia para comparar con cero
+
+// Función para mostrar una matriz
+void mostrar_matriz(double matriz[MAX][MAX], int n) {
+    printf("\nMatriz actual:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%8.4lf ", matriz[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+// Validar entrada del tamaño de la matriz
+int obtener_entero(const char *mensaje) {
+    int valor;
+    while (true) {
+        printf("%s", mensaje);
+        if (scanf("%d", &valor) == 1) {
+            while (getchar() != '\n'); // Limpiar el buffer
+            return valor;
+        }
+        printf("Entrada no válida. Intente de nuevo.\n");
+        while (getchar() != '\n'); // Limpiar el buffer
+    }
+}
+
+// Validar entrada de un número flotante
+double obtener_flotante(const char *mensaje) {
+    double valor;
+    while (true) {
+        printf("%s", mensaje);
+        if (scanf("%lf", &valor) == 1) {
+            while (getchar() != '\n'); // Limpiar el buffer
+            return valor;
+        }
+        printf("Entrada no válida. Intente de nuevo.\n");
+        while (getchar() != '\n'); // Limpiar el buffer
+    }
+}
+
+// Función para que el usuario ingrese una matriz cuadrada
+void ingresar_matriz(double matriz[MAX][MAX], int *n) {
+    *n = obtener_entero("Ingrese el tamaño de la matriz cuadrada (1-10): ");
+    if (*n > MAX || *n <= 0) {
+        printf("Tamaño inválido. El tamaño debe estar entre 1 y %d.\n", MAX);
+        exit(1);
+    }
+    printf("Ingrese los elementos de la matriz:\n");
+    for (int i = 0; i < *n; i++) {
+        for (int j = 0; j < *n; j++) {
+            char mensaje[50];
+            sprintf(mensaje, "Elemento [%d][%d]: ", i + 1, j + 1);
+            matriz[i][j] = obtener_flotante(mensaje);
+        }
+    }
+}
+
+// Función para calcular el determinante de una matriz
+double determinante(double matriz[MAX][MAX], int n) {
+    double det = 0.0;
+    if (n == 1) {
+        return matriz[0][0];
+    } else if (n == 2) {
+        return matriz[0][0] * matriz[1][1] - matriz[0][1] * matriz[1][0];
+    } else {
+        double submatriz[MAX][MAX];
+        for (int x = 0; x < n; x++) {
+            int subi = 0;
+            for (int i = 1; i < n; i++) {
+                int subj = 0;
+                for (int j = 0; j < n; j++) {
+                    if (j == x) continue;
+                    submatriz[subi][subj] = matriz[i][j];
+                    subj++;
+                }
+                subi++;
+            }
+            det += (x % 2 == 0 ? 1 : -1) * matriz[0][x] * determinante(submatriz, n - 1);
+        }
+    }
+    return det;
+}
+
+// Función para calcular el rango de una matriz usando eliminación gaussiana
+int calcular_rango(double matriz[MAX][MAX], int n) {
+    double temp[MAX][MAX];
+    int i, j, k, rango = n;
+
+    // Copiar la matriz original
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < n; j++) {
+            temp[i][j] = matriz[i][j];
+        }
+    }
+
+    for (i = 0; i < rango; i++) {
+        if (fabs(temp[i][i]) < EPSILON) {
+            bool encontrado = false;
+            for (j = i + 1; j < rango; j++) {
+                if (fabs(temp[j][i]) > EPSILON) {
+                    for (k = 0; k < n; k++) {
+                        double aux = temp[i][k];
+                        temp[i][k] = temp[j][k];
+                        temp[j][k] = aux;
+                    }
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado) {
+                rango--;
+                for (j = 0; j < rango; j++) {
+                    temp[j][i] = temp[j + 1][i];
+                }
+                i--;
+            }
+        } else {
+            for (j = i + 1; j < rango; j++) {
+                double coef = temp[j][i] / temp[i][i];
+                for (k = 0; k < n; k++) {
+                    temp[j][k] -= coef * temp[i][k];
+                }
+            }
+        }
+    }
+    return rango;
+}
+
+// Función para determinar si una matriz es diagonalizable
+void es_diagonalizable(double matriz[MAX][MAX], int n) {
+    double valores_propios[MAX];
+    int num_valores = 0;
+
+    // Calcular valores propios (simplificado para propósitos educativos)
+    double lambda = -100;
+    double incremento = 0.1;
+
+    while (lambda < 100) {
+        double A_lambda[MAX][MAX];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                A_lambda[i][j] = matriz[i][j] - (i == j ? lambda : 0);
+            }
+        }
+        if (fabs(determinante(A_lambda, n)) < EPSILON) {
+            bool ya_existe = false;
+            for (int k = 0; k < num_valores; k++) {
+                if (fabs(valores_propios[k] - lambda) < EPSILON) {
+                    ya_existe = true;
+                    break;
+                }
+            }
+            if (!ya_existe) {
+                valores_propios[num_valores++] = lambda;
+            }
+        }
+        lambda += incremento;
+    }
+
+    printf("\nValores propios encontrados:\n");
+    for (int i = 0; i < num_valores; i++) {
+        printf("%.2lf ", valores_propios[i]);
+    }
+    printf("\n");
+
+    // Verificar diagonalización
+    for (int i = 0; i < num_valores; i++) {
+        double A_lambda[MAX][MAX];
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                A_lambda[j][k] = matriz[j][k] - (j == k ? valores_propios[i] : 0);
+            }
+        }
+        int rango = calcular_rango(A_lambda, n);
+        if (rango != n - 1) {
+            printf("La matriz NO es diagonalizable.\n");
+            return;
+        }
+    }
+    printf("La matriz es diagonalizable.\n");
+}
+
+// Menú principal
+void menu() {
+    double matriz[MAX][MAX];
+    int n = 0;
+    int opcion;
+
+    do {
+        printf("\n--- Menú Principal ---\n");
+        printf("1. Ingresar una nueva matriz\n");
+        printf("2. Verificar si la matriz es diagonalizable\n");
+        printf("3. Salir\n");
+        printf("Seleccione una opción: ");
+        opcion = obtener_entero("");
+
+        switch (opcion) {
+        case 1:
+            ingresar_matriz(matriz, &n);
+            mostrar_matriz(matriz, n);
+            break;
+        case 2:
+            if (n == 0) {
+                printf("Primero debe ingresar una matriz.\n");
+            } else {
+                es_diagonalizable(matriz, n);
+            }
+            break;
+        case 3:
+            printf("Saliendo del programa...\n");
+            break;
+        default:
+            printf("Opción inválida. Intente de nuevo.\n");
+        }
+    } while (opcion != 3);
+}
+
+int main() {
+    menu();
+    return 0;
+}
